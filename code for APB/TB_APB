@@ -1,0 +1,51 @@
+module tb; reg P_clk; reg P_rst; reg [31:0] P_addr; reg P_selx; reg P_enable; 
+reg P_write; reg [31:0] P_wdata; wire P_ready; wire P_slverr; wire [31:0] P_rdata; 
+AMBA_APB dut1( 
+P_clk, P_rst, P_addr, 
+P_selx, P_enable, P_write, 
+P_wdata, P_ready, P_slverr, P_rdata 
+); 
+always #5 P_clk = ~P_clk; 
+////////////////////////// 
+// WRITE TASK 
+////////////////////////// 
+task write_stimulus(input [31:0] addr, input [31:0] data); begin 
+@(posedge P_clk); 
+P_addr = addr; 
+P_wdata = data; 
+P_write = 1; 
+P_selx = 1; 
+P_enable= 0; 
+@(posedge P_clk); 
+P_enable = 1; 
+@(posedge P_clk); // ACCESS 
+P_selx = 0; 
+P_enable = 0; 
+$display("WRITE: Addr=%0d Data=%0d", addr, data); end endtask 
+////////////////////////// 
+// READ TASK 
+////////////////////////// 
+task read_stimulus(input [31:0] addr); begin 
+@(posedge P_clk); 
+P_addr = addr; 
+P_write = 0; 
+P_selx = 1; 
+P_enable= 0; 
+@(posedge P_clk); 
+P_enable = 1; 
+@(posedge P_clk); // ACCESS phase if (P_ready) 
+$display("READ: Addr=%0d Data=%0d", addr, P_rdata); 
+P_selx = 0; 
+P_enable = 0; end endtask 
+////////////////////////// 
+// MAIN TEST 
+////////////////////////// initial begin 
+P_clk = 0; 
+P_rst = 1; 
+P_selx = 0; 
+P_enable = 0; 
+P_write = 0; 
+P_addr = 0; 
+#10 P_rst = 0; // WRITE write_stimulus(1, 3); write_stimulus(2, 7); // READ read_stimulus(1); read_stimulus(2); 
+#20; 
+$finish; end endmodule 
